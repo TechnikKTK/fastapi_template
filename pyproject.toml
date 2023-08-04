@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "backend"
+version = "0.1.0"
+description = ""
+authors = ["SaD-Pr0gEr <sad.pr0ger@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.100.1"
+sqlalchemy = "^2.0.19"
+alembic = "^1.11.1"
+psycopg-binary = "^3.1.9"
+pydantic = "^2.1.1"
+pydantic-settings = "^2.0.2"
+uvicorn = {extras = ["standard"], version = "^0.23.2"}
+
+
+[tool.poetry.group.lint.dependencies]
+black = "^23.7.0"
+isort = "^5.12.0"
+mypy = "^1.4.1"
+pylint = "^2.17.5"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+pytest-asyncio = "^0.21.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
