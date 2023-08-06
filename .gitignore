@@ -189,3 +189,4 @@ commands.txt
 ui_dist/
 
 .envs/
+config.toml

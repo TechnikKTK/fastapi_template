@@ -15,16 +15,16 @@ class MateGPT(FastAPI):
         self.debug = self.app_config.server.DEBUG
 
 
-def make_app() -> FastAPI:
+def make_app() -> MateGPT:
     base_dir = Path(__file__).parent
     main_env = base_dir / '.envs/.env'
-    server_env = base_dir / '.envs/server.env'
+    config_toml_path = base_dir / 'config.toml'
     db_env = base_dir / '.envs/db.env'
     app_config = load_config(
-        server_env,
+        config_toml_path,
         db_env, main_env,
         db_conf.PostgresConfig
     )
     return MateGPT(
-        app_config,
+        app_config
     )
