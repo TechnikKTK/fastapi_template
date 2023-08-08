@@ -16,12 +16,12 @@ def load_config(
         config = tomllib.load(file)
     server_config = ServerConfig(**config['server'])
     db_config = main_db_conf_class(
-        _env_file=db_env_path,
-        _case_sensitive=False
+        _env_file=db_env_path,  # type: ignore
+        _case_sensitive=False  # type: ignore
     )
     return Config(
-        _env_file=others_env_path,
-        _case_sensitive=False,
+        _env_file=others_env_path,  # type: ignore
+        _case_sensitive=False,  # type: ignore
         server=server_config,
         main_db=db_config,
         **config['app']
