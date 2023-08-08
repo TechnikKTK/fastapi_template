@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 
 class BaseDbConfig(BaseSettings):
     DB_TYPE: str
-    HOST: str = Field(default='localhost')
+    HOST: str = Field(default="localhost")
     PORT: int
 
     @property
@@ -30,6 +30,4 @@ class RedisConfig(BaseDbConfig):
 
     @property
     def db_url(self):
-        return (
-            f"{self.DB_TYPE}://{self.HOST}:{self.PORT}/{self.DB_NUM}"
-        )
+        return f"{self.DB_TYPE}://{self.HOST}:{self.PORT}/{self.DB_NUM}"

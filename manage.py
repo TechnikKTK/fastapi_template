@@ -3,7 +3,7 @@ import click
 from cli.site import site_dev_run
 
 
-@click.group('site', help='Cli for working with server')
+@click.group("site", help="Cli for working with server")
 def site_group():
     pass
 
