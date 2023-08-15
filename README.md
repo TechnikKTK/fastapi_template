@@ -31,5 +31,11 @@ poetry shell
 ## Running project
 ```shell
 cd app
-uvicorn main:app --reload
+python manage.py site run
+```
+
+## Pre-commit hooks
+
+```shell
+pre-commit run --all-files
 ```
