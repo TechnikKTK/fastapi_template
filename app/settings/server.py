@@ -5,10 +5,10 @@ from . import db as db_conf
 
 
 class ServerConfig(BaseSettings):
-    HOST: str = Field(default='127.0.0.1')
+    HOST: str = Field(default="127.0.0.1")
     PORT: int = Field(default=8000)
     DEBUG: bool = Field(default=True)
-    LOGLEVEL: str = Field(default='DEBUG')
+    LOGLEVEL: str = Field(default="DEBUG")
 
 
 class Config(BaseSettings):
