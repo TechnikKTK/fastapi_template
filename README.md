@@ -20,17 +20,21 @@ poetry shell
 
 ## Setting up environment vars
 * Rename `app/example.envs` to `.envs`
-* Remove `example` from every file name in `app/example.envs`(`aka app/.envs`)
-* They should look like this `app/.envs/.env`/`app/.envs/db.env`
-* Rename all example values to actual values
+* Remove `example` from every file name in `app/example.envs` (They should look like this `app/.envs/.env` etc.)
+* Rename all example values to actual values and put other values(add these values to config class)
 
 ## Setting up config
 * Rename `app/example.config.toml` to `app/config.toml`
 * Rename all example values to actual values
 
+## Alembic
+
+* App models put in app model file, and import this file to alembic's 
+`env.py` file(before BASE)
+* All models must inherit from BASE class in `apps/models.py`
+
 ## Running project
 ```shell
-cd app
 python manage.py site run
 ```
 

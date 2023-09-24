@@ -4,8 +4,6 @@ from pydantic_settings import BaseSettings
 
 class BaseDbConfig(BaseSettings):
     DB_TYPE: str
-    HOST: str = Field(default="localhost")
-    PORT: int
 
     @property
     def db_url(self):
@@ -13,21 +11,30 @@ class BaseDbConfig(BaseSettings):
 
 
 class PostgresConfig(BaseDbConfig):
-    USER: str
-    PASSWORD: str
-    DB_NAME: str
+    PG_USER: str
+    PG_PASSWORD: str
+    PG_NAME: str
+    PG_HOST: str = Field(default='localhost')
+    DB_TYPE: str = Field(default='postgresql')
+    PG_PORT: int = Field(default=5432)
 
     @property
     def db_url(self):
         return (
-            f"{self.DB_TYPE}://{self.USER}:{self.PASSWORD}"
-            f"@{self.HOST}:{self.PORT}/{self.DB_NAME}"
+            f'{self.DB_TYPE}://{self.PG_USER}:{self.PG_PASSWORD}'
+            f'@{self.PG_HOST}:{self.PG_PORT}/{self.PG_NAME}'
         )
 
 
 class RedisConfig(BaseDbConfig):
-    DB_NUM: int = Field(default=1)
+    REDIS_DB: int = Field(default=1)
+    DB_TYPE: str = Field(default='redis')
+    REDIS_HOST: str = Field(default='localhost')
+    REDIS_PORT: int = Field(default=6379)
 
     @property
     def db_url(self):
-        return f"{self.DB_TYPE}://{self.HOST}:{self.PORT}/{self.DB_NUM}"
+        return (
+            f'{self.DB_TYPE}://{self.REDIS_HOST}:'
+            f'{self.REDIS_PORT}/{self.REDIS_DB}'
+        )
