@@ -9,8 +9,9 @@ from app import app
 )
 def site_dev_run():
     uvicorn.run(
-        app,
+        'app:app',
         log_level=app.config.server.LOGLEVEL,
         port=app.config.server.PORT,
         host=app.config.server.HOST,
+        reload=True
     )
