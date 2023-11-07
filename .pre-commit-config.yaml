@@ -27,7 +27,7 @@ repos:
         language: system
         types: [python]
         exclude: migrations/
-        args: ["--disable=C0114,C0115,C0116,W0511,R0903"]
+        args: ["--disable=C0114,C0115,C0116,W0511,R0903,C0103"]
 
   - repo: local
     hooks:

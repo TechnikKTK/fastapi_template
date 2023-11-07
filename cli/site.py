@@ -1,7 +1,7 @@
 import click
 import uvicorn
 
-from app import app
+from asgi import application
 
 
 @click.command(
@@ -9,9 +9,9 @@ from app import app
 )
 def site_dev_run():
     uvicorn.run(
-        'app:app',
-        log_level=app.config.server.LOGLEVEL,
-        port=app.config.server.PORT,
-        host=app.config.server.HOST,
-        reload=True
+        "asgi:application",
+        log_level=application.config.server.LOGLEVEL,
+        port=application.config.server.PORT,
+        host=application.config.server.HOST,
+        reload=True,
     )
