@@ -4,15 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI
 
 from app.settings.db import PostgresConfig, RedisConfig
-from app.settings.server import Config, ServerConfig
-
-
-BASE_DIR = Path(__file__).parent.parent
-APP_DIR = BASE_DIR / "app"
-MAIN_ENV = APP_DIR / ".envs/.env"
-PSQL_ENV = APP_DIR / ".envs/psql.env"
-REDIS_ENV = APP_DIR / ".envs/redis.env"
-TOML_CONFIG = APP_DIR / "config.toml"
+from app.settings.server import Config, Misc, ServerConfig
 
 
 class App(FastAPI):
@@ -26,9 +18,12 @@ def load_config(
     psql_env_path: str | Path,
     redis_env_path: str | Path,
     others_env_path: str | Path,
+    misc: Misc | None = None,
 ) -> Config:
     with open(config_toml_path, "rb") as file:
         config = tomllib.load(file)
+    if not misc:
+        misc = Misc()
     server_config = ServerConfig(**config["server"])
     pg_db_config = PostgresConfig(
         _env_file=psql_env_path,  # type: ignore
@@ -44,8 +39,6 @@ def load_config(
         server=server_config,
         main_db=pg_db_config,
         cache_db=redis_conf,
+        misc=misc,
         **config["app"]
     )
-
-
-APP_CONFIG = load_config(TOML_CONFIG, PSQL_ENV, REDIS_ENV, MAIN_ENV)

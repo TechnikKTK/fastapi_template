@@ -1,5 +1,8 @@
-from app.config import APP_CONFIG
+from fastapi import Request
+
+from app.config import App
 
 
-async def core():
-    return {"status": APP_CONFIG.APP_NAME}
+async def core(request: Request):
+    app: App = request.app
+    return {"status": app.config.APP_NAME}
