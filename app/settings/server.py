@@ -30,3 +30,6 @@ class Config(BaseSettings):
     cache_db: db_conf.RedisConfig
     misc: Misc
     APP_NAME: str
+
+    # Url names
+    CORE_GET: str = "core_get"
