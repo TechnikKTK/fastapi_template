@@ -33,6 +33,11 @@ poetry shell
 `env.py` file(before BASE)
 * All models must inherit from BASE class in `apps/models.py`
 
+## Testings DB connection
+```shell
+python manage.py test-connection
+```
+
 ## Running project
 ```shell
 python manage.py site run
