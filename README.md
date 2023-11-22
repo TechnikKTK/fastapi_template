@@ -38,6 +38,11 @@ poetry shell
 python manage.py test-connection
 ```
 
+## Running tests
+```shell
+pytest
+```
+
 ## Running project
 ```shell
 python manage.py site run
