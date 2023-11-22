@@ -25,6 +25,10 @@ class PostgresConfig(BaseDbConfig):
             f"@{self.PG_HOST}:{self.PG_PORT}/{self.PG_NAME}"
         )
 
+    @property
+    def db_async_url(self):
+        return self.db_url.replace('://', '+asyncpg://', 1)
+
 
 class RedisConfig(BaseDbConfig):
     REDIS_DB: int = Field(default=1)
