@@ -10,7 +10,12 @@ from app.settings.server import Config, Misc, ServerConfig
 
 
 class App(FastAPI):
-    def __init__(self, config: Config, async_pg_engine: AsyncPostgresEngine, sync_pg_engine: SyncPgEngine):
+    def __init__(
+        self,
+        config: Config,
+        async_pg_engine: AsyncPostgresEngine,
+        sync_pg_engine: SyncPgEngine,
+    ):
         super().__init__(title=config.APP_NAME, debug=config.server.DEBUG)
         self.config = config
         self.db_async = async_pg_engine

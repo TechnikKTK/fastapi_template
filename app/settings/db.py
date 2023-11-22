@@ -27,7 +27,7 @@ class PostgresConfig(BaseDbConfig):
 
     @property
     def db_async_url(self):
-        return self.db_url.replace('://', '+asyncpg://', 1)
+        return self.db_url.replace("://", "+asyncpg://", 1)
 
 
 class RedisConfig(BaseDbConfig):
