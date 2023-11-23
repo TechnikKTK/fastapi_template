@@ -14,6 +14,11 @@ class ServerConfig(BaseSettings):
     LOGLEVEL: str = Field(default="DEBUG")
 
 
+class AppConfig(BaseSettings):
+    APP_NAME: str
+    ALLOWED_HOSTS: list[str] = Field(default=["127.0.0.1"])
+
+
 @dataclass
 class Misc:
     BASE_DIR: Path = Path(__file__).parent.parent.parent
@@ -26,10 +31,10 @@ class Misc:
 
 class Config(BaseSettings):
     server: ServerConfig
+    app: AppConfig
     main_db: db_conf.PostgresConfig
     cache_db: db_conf.RedisConfig
     misc: Misc
-    APP_NAME: str
 
     # Url names
     CORE_GET: str = "core_get"
