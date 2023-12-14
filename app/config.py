@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from app.db.postgres.db_async import AsyncPostgresEngine
 from app.db.postgres.db_sync import SyncPgEngine
 from app.settings.db import PostgresConfig, RedisConfig
-from app.settings.server import AppConfig, Config, Misc, ServerConfig
+from app.settings.server import AppConfig, Config, Misc, ServerConfig, UrlNames
 
 
 class App(FastAPI):
@@ -51,4 +51,5 @@ def load_config(
         main_db=pg_db_config,
         cache_db=redis_conf,
         misc=misc,
+        urls=UrlNames(),
     )
