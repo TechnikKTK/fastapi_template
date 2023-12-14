@@ -33,8 +33,8 @@ def load_config(
         config = tomllib.load(file)
     if not misc:
         misc = Misc()
-    server_config = ServerConfig(**config["server"])
     app_config = AppConfig(**config["app"])
+    server_config = ServerConfig(**config["server"])
     pg_db_config = PostgresConfig(
         _env_file=psql_env_path,  # type: ignore
         _case_sensitive=False,  # type: ignore
@@ -46,8 +46,8 @@ def load_config(
     return Config(
         _env_file=others_env_path,  # type: ignore
         _case_sensitive=False,  # type: ignore
-        server=server_config,
         app=app_config,
+        server=server_config,
         main_db=pg_db_config,
         cache_db=redis_conf,
         misc=misc,
