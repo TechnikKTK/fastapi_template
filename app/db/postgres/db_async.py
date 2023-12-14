@@ -2,7 +2,11 @@ from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy.exc import ArgumentError
-from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+)
 from sqlalchemy.ext.asyncio.exc import AsyncMethodRequired
 
 from app.settings.db import PostgresConfig
@@ -13,7 +17,9 @@ class AsyncPostgresEngine(AsyncEngine, metaclass=SingletonMeta):
     def __init__(self, pg_config: PostgresConfig, **params):
         self.pg_config = pg_config
         super().__init__(self._init_sync_engine(pg_config, **params))
-        self.session_class = async_sessionmaker(self)
+        self.session_class: async_sessionmaker[
+            AsyncSession
+        ] = async_sessionmaker(self)
 
     def _init_sync_engine(self, config: PostgresConfig, **kwargs) -> sa.Engine:
         if kwargs.get("server_side_cursors", False):
