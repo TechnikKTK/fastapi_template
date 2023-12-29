@@ -7,11 +7,11 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from asgi import application
-
 BASE_DIR = Path(__file__).parent.parent.parent
 
 sys.path.append(BASE_DIR.__str__())
+
+from asgi import application
 
 import app.apps.api.v1.core.models as v1_core_models
 from app.apps.models import BASE
