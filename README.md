@@ -31,7 +31,8 @@ poetry shell
 
 * App models put in app model file, and import this file to alembic's 
 `env.py` file(before BASE)
-* All models must inherit from BASE class in `apps/models.py`
+* All models must inherit from BASE class in `apps/models.py` and BaseModelMixin(OPTIONAL)
+* Apply migrates with command `alembic upgrade head`
 
 ## Testings DB connection
 ```shell
