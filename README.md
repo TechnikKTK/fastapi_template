@@ -51,6 +51,5 @@ python manage.py site run
 
 ## Pre-commit hooks
 
-```shell
-pre-commit run --all-files
-```
+* Install pre-commit first time with command `pre-commit install`
+* Run pre-commit hooks with command `pre-commit run --all-files`
