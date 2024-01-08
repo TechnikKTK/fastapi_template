@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "marva-crm-backend-api"
+name = "fastapi-template"
 version = "0.1.0"
 description = ""
 authors = ["SaD-Pr0gEr <sad.pr0ger@gmail.com>"]
