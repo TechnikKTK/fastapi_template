@@ -12,6 +12,10 @@ git clone git@github.com:SaD-Pr0gEr/fastapi_template.git
 git clone https://github.com/SaD-Pr0gEr/fastapi_template.git
 ```
 
+## Set project name
+* Go to `pyproject.toml` and set project `name` to your project name
+
+
 ## Installing dependencies
 ```shell
 poetry install
