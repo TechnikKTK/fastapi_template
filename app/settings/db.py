@@ -11,9 +11,9 @@ class BaseDbConfig(BaseSettings):
 
 
 class PostgresConfig(BaseDbConfig):
-    PG_USER: str
-    PG_PASSWORD: str
-    PG_NAME: str
+    PG_USER: str= Field(default="postgresql")
+    PG_PASSWORD: str= Field(default="postgresql")
+    PG_NAME: str= Field(default="postgresql")
     PG_HOST: str = Field(default="localhost")
     DB_TYPE: str = Field(default="postgresql")
     PG_PORT: int = Field(default=5432)

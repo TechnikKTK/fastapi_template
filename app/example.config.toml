@@ -1,8 +1,0 @@
-[server]
-    HOST = '127.0.0.1'
-    PORT = 5555
-    DEBUG = true
-    LOGLEVEL = 'debug' # Logging level. One of: [critical|error|warning|info|debug|trace]
-[app]
-    APP_NAME = 'YOUR APP NAME'
-    ALLOWED_HOSTS = ['127.0.0.1']
