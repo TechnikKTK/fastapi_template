@@ -178,32 +178,34 @@ def run_ds_registrator(
         
         logger.info("#Проверка переходов (должны быть на UploadPhoto)")
         logger.info(f"Текущая страница: {ds_registrator.browser.driver.current_url}")
-        ds_registrator.browser.find_elementByClass("uploadphoto").click()
-        #time.sleep(7)
-
-        logger.info("#Проверка переходов (должны быть на Upload.aspx)")
-        logger.info(f"Текущая страница: {ds_registrator.browser.driver.current_url}")
-        logger.info(f"Загрузка в input фото клиента")
-        logger.info(f"Фото клиента: {user_photo_path}")
-        ds_registrator.browser.find_elementByID("ctl00_cphMain_imageFileUpload").send_keys(user_photo_path)
-        #time.sleep(4)
-
-        logger.info(f"Нажимаю на кнопку загрузить")
-        ds_registrator.browser.find_elementByID("ctl00_cphButtons_btnUpload").click()
-        ds_registrator.accept_alert()        
-        #time.sleep(4)
         
-        logger.info("#Проверка переходов (должны быть на Result)")
-        logger.info(f"Текущая страница: {ds_registrator.browser.driver.current_url}")
-        ds_registrator.browser.find_elementByClass("next").click()
-        ds_registrator.accept_alert()
-        #time.sleep(4)
+        if 'node=ReviewPersonal' not in ds_registrator.browser.driver.current_url: 
+            ds_registrator.browser.find_elementByClass("uploadphoto").click()
+            #time.sleep(7)
 
-        logger.info("#Проверка переходов (должны быть на ConfirmPhoto)")
-        logger.info(f"Текущая страница: {ds_registrator.browser.driver.current_url}")
-        ds_registrator.browser.find_elementByClass("next").click()
-        ds_registrator.accept_alert()
-        #time.sleep(4)
+            logger.info("#Проверка переходов (должны быть на Upload.aspx)")
+            logger.info(f"Текущая страница: {ds_registrator.browser.driver.current_url}")
+            logger.info(f"Загрузка в input фото клиента")
+            logger.info(f"Фото клиента: {user_photo_path}")
+            ds_registrator.browser.find_elementByID("ctl00_cphMain_imageFileUpload").send_keys(user_photo_path)
+            #time.sleep(4)
+
+            logger.info(f"Нажимаю на кнопку загрузить")
+            ds_registrator.browser.find_elementByID("ctl00_cphButtons_btnUpload").click()
+            ds_registrator.accept_alert()        
+            #time.sleep(4)
+            
+            logger.info("#Проверка переходов (должны быть на Result)")
+            logger.info(f"Текущая страница: {ds_registrator.browser.driver.current_url}")
+            ds_registrator.browser.find_elementByClass("next").click()
+            ds_registrator.accept_alert()
+            #time.sleep(4)
+
+            logger.info("#Проверка переходов (должны быть на ConfirmPhoto)")
+            logger.info(f"Текущая страница: {ds_registrator.browser.driver.current_url}")
+            ds_registrator.browser.find_elementByClass("next").click()
+            ds_registrator.accept_alert()
+            #time.sleep(4)
 
         logger.info("#Проверка переходов (должны быть на ReviewPersonal)")
         logger.info(f"Текущая страница: {ds_registrator.browser.driver.current_url}")
@@ -222,24 +224,23 @@ def run_ds_registrator(
                 time.sleep(5)
             except Exception as ex:
                 #logger.warning(f"Ошибка {ex}")
-                continue            
-        time.sleep(3)
-        
+                continue  
+
+
         logger.info("Последний шаг перед скриншотом")
-        logger.info("Отмечаем чекбокс")
-        ds_registrator.browser.driver.find_element(
-            By.ID, "ctl00_SiteContentPlaceHolder_FormView3_rblPREP_IND_1"
-        ).click()
+        logger.info("отмечаем флажок (проституция)")
+        ds_registrator.new_method_click("ctl00_SiteContentPlaceHolder_chkbxFGMC")
         ds_registrator.accept_alert()
-        time.sleep(3)
+        
+        logger.info("Отмечаем радиокнопку")
+        ds_registrator.new_method_click("ctl00_SiteContentPlaceHolder_FormView3_rblPREP_IND_1")
+        ds_registrator.accept_alert()
+        
         logger.info("Заполняем паспортные данные из анкеты")
-        ds_registrator.browser.driver.find_element(
-            By.ID, "ctl00_SiteContentPlaceHolder_PPTNumTbx"
-        ).send_keys(
-            valid_data["step_8"][
-                "ctl00_SiteContentPlaceHolder_FormView1_tbxPPT_NUM"
-            ]
-        )        
+        ds_registrator.new_method_setvalue("ctl00_SiteContentPlaceHolder_PPTNumTbx", 
+            valid_data["step_8"]["ctl00_SiteContentPlaceHolder_FormView1_tbxPPT_NUM"])
+
+
         logger.info("Забираем каптчу и пытаемся ее решить")
         captcha_photo = ds_registrator.browser.driver.find_element(
             By.CLASS_NAME, "LBD_CaptchaImage"
@@ -260,39 +261,52 @@ def run_ds_registrator(
         ds_registrator.browser.driver.find_element(
             By.CLASS_NAME, "next"
         ).click()
+
         ds_registrator.accept_alert()
         time.sleep(3)
-    
-        final_photo = ds_registrator.browser.driver.find_element(
-            By.ID, "ctl00_SiteContentPlaceHolder_FormView1"
+
+        logger.info("Забираем СКРИНШОТ визы")
+        
+        final_photo = ds_registrator.browser.find_elementByID("ctl00_SiteContentPlaceHolder_FormView1"
         ).screenshot_as_base64
         ds_task_data["final_photo"] = final_photo
         ds_task_data["task_status"] = TaskStatusChoices.SUCCESS.value
+
+        logger.info("Анкета успешно обработана, закрываю браузер")
         
     except Exception as ex:
-        logger.warning(f"Ошибка: {ex}")
-        ds_task_data["task_status"] = TaskStatusChoices.FAILURE.value
+        logger.warning(f"Ошибка во время работы анкеты: {ex}")
+        ds_task_data["task_status"] = TaskStatusChoices.CRASH.value
     finally:
-        logger.info("Пытаюсь закрыть браузер")
         try:
             logger.info("Попытка удаления процесса из памяти")
 
             ds_registrator.accept_alert()
-            ds_registrator.browser.driver.close()            
+            ds_registrator.browser.driver.close()  
+        except:
+            pass
 
+        try:            
             ds_registrator.accept_alert()
             ds_registrator.browser.driver.quit()
+        except:
+            pass  
 
+        try:            
             ds_registrator.browser.delete()
-
         except (WebDriverException, UnexpectedAlertPresentException) as ex:
             logger.warning(f"Ошибка при закрытии браузера: {ex}")
+        except Exception as ex:
+            logger.warning(f"Ошибка при закрытии браузера: {ex}")
         finally:
-            if os.path.exists(ds_registrator.browser.driver.user_data_dir):
-                if os.path.isfile(ds_registrator.browser.driver.user_data_dir):
-                    os.remove(ds_registrator.browser.driver.user_data_dir)
-                else:
-                    shutil.rmtree(ds_registrator.browser.driver.user_data_dir)  
-            
+            try:
+                if os.path.exists(ds_registrator.browser.driver.user_data_dir):
+                    if os.path.isfile(ds_registrator.browser.driver.user_data_dir):
+                        os.remove(ds_registrator.browser.driver.user_data_dir)
+                    else:
+                        shutil.rmtree(ds_registrator.browser.driver.user_data_dir)  
+            except:
+                pass
+
             logger.info("Возвращаю состояние таски в visa")
             return ds_task_data

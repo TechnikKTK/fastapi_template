@@ -5,7 +5,12 @@ import random
 import shutil
 import time
 
+
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver import ActionChains
+
 from fake_useragent import FakeUserAgent
+from selenium.common import UnexpectedAlertPresentException, WebDriverException
 from selenium.webdriver.common.by import By
 from undetected_chromedriver import Chrome
 
@@ -56,9 +61,10 @@ def interview_registrator_run(
         rucaptcha_api_key,
     )
     try:
-        logger.info("REGISTRATOR CREATED")
+        action = ActionChains(registrator.browser.driver)
+        logger.info("Класс регистратора на собеседование создан")
         registrator.browser.driver.get(registrator.HOME_PAGE_URL)
-        logger.info("FIRST PAGE COUNTRY")
+        logger.info("Выбираю страну и город")
         time.sleep(5)
         registrator.choose_country_and_city(
             f"select[name='CountryCodeShow']",
@@ -66,10 +72,11 @@ def interview_registrator_run(
             f"select[name='PostCodeShow']",
             city_code,
         )
-        time.sleep(1)
-        registrator.browser.driver.find_element(
-            By.CSS_SELECTOR, ".buttontext"
-        ).click()
+        
+        element = registrator.browser.find_elementByClass("buttontext")
+        if element != -1:
+            action.click(element).perform()
+
         time.sleep(3)
         maybe_captcha_solved = registrator.maybe_captcha_page_solve()
         if not maybe_captcha_solved:
@@ -300,11 +307,17 @@ def interview_registrator_run(
             by_alias=True
         )
     finally:
-        logger.info("CLOSING BROWSER")
-        registrator.browser.driver.close()
-        registrator.browser.driver.quit()
-        if os.path.exists(registrator.browser.driver.user_data_dir):
-            if os.path.isfile(registrator.browser.driver.user_data_dir):
-                os.remove(registrator.browser.driver.user_data_dir)
-            else:
-                shutil.rmtree(registrator.browser.driver.user_data_dir)
+        try:            
+            logger.info("CLOSING BROWSER")
+            registrator.browser.driver.close()
+            registrator.browser.driver.quit()
+        except (WebDriverException, UnexpectedAlertPresentException) as ex:
+            logger.warning(f"Ошибка при закрытии браузера: {ex}")
+        except Exception as ex:
+            logger.warning(f"Ошибка при закрытии браузера: {ex}")
+        finally:
+            if os.path.exists(registrator.browser.driver.user_data_dir):
+                if os.path.isfile(registrator.browser.driver.user_data_dir):
+                    os.remove(registrator.browser.driver.user_data_dir)
+                else:
+                    shutil.rmtree(registrator.browser.driver.user_data_dir)

@@ -6,11 +6,16 @@ from app.apps.schemas import ApiResponseSchema
 
 
 class TaskStatusChoices(str, Enum):
+    CREATED: str = "CREATED"
+    STARTED: str = "STARTED"
     SUCCESS: str = "SUCCESS"
     FAILURE: str = "FAILURE"
+    CRASH: str = "CRASH"
 
 
 class DsTaskCreatedResponse(ApiResponseSchema):
+    task_status: TaskStatusChoices = Field(default=TaskStatusChoices.CREATED)
+    errors: list[str]
     task_id: str
     ds_record_id: str = Field(alias="DsRecordId", default="")
 
@@ -25,6 +30,8 @@ class DsTaskResult(BaseModel):
 
 class DsTaskFailRequestSchema(ApiResponseSchema):
     task_id: str
+    task_status: TaskStatusChoices
+
 
 
 class DsTaskStatusResponse(DsTaskCreatedResponse, DsTaskResult):
@@ -227,9 +234,7 @@ class DsSevenStepBody(DsStepsBodyData):
     add_social_radio: bool | None = Field(
         alias="ctl00$SiteContentPlaceHolder$FormView1$rblAddSocial"
     )
-    add_social_plat_radio: bool | str | None = Field(
-        alias="ctl00$SiteContentPlaceHolder$FormView1$dtlAddSocial$ctl00$tbxAddSocialPlat"
-    )
+    ctl00_SiteContentPlaceHolder_FormView1_dtlAddSocial_ctl00_tbxAddSocialPlat: str | None
     ctl00_SiteContentPlaceHolder_FormView1_dtlAddSocial_ctl00_tbxAddSocialHand: str | None
 
 
@@ -315,6 +320,8 @@ class DsTenStepBody(DsStepsBodyData):
 class DsElevenStepBody(DsStepsBodyData):
     ctl00_SiteContentPlaceHolder_FormView1_tbxSpouseSurname: str | None
     ctl00_SiteContentPlaceHolder_FormView1_tbxSpouseGivenName: str | None
+    ctl00_SiteContentPlaceHolder_FormView1_tbxSURNAME: str | None
+    ctl00_SiteContentPlaceHolder_FormView1_tbxGIVEN_NAME: str | None
     ctl00_SiteContentPlaceHolder_FormView1_ddlDOBDay: str | None
     ctl00_SiteContentPlaceHolder_FormView1_ddlDOBMonth: str | None
     ctl00_SiteContentPlaceHolder_FormView1_tbxDOBYear: str | None

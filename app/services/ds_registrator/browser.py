@@ -124,6 +124,4 @@ class Browser:
             element = self.wait.until(lambda x: x.find_element(By.CSS_SELECTOR, elementClass)) 
             return element
         except TimeoutException:
-            return -1
-
-        
+            return -1   

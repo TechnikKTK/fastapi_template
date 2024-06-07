@@ -231,12 +231,12 @@ class DsRegistrator:
         birth_year: str,
         secret_q_answer: str,
     ) -> None:
-        logger.info("SESSION TIME OUT, RECOVERING")
+        logger.info("Восстанавиливаю сессию")
         self.browser.driver.get(self.HOME_PAGE_URL)
+        logger.info("Забираю каптчу")
         captcha_photo = self.browser.find_elementByClass("LBD_CaptchaImage").screenshot_as_base64
         captcha_response = self.solve_captcha(captcha_photo)
-        
-        logger.info(f"Rucaptcha вернул: {captcha_response}")
+                
         while captcha_response == "None":
             logger.info("решаем новую каптчу")
             self.browser.driver.refresh()
@@ -244,48 +244,41 @@ class DsRegistrator:
             captcha_photo = self.browser.find_elementByClass("LBD_CaptchaImage").screenshot_as_base64
             captcha_response = self.solve_captcha(captcha_photo)
 
+        logger.info(f"Rucaptcha вернул: {captcha_response}")
         logger.info("Каптча решена")
         
-        element = self.browser.find_elementByID("ctl00_SiteContentPlaceHolder_ucLocation_IdentifyCaptcha1_txtCodeTextBox")
-        if element != -1:
-            logger.info("Заполняю поле ввода каптчи")
-            self.browser.set_input_value(
-                "input#ctl00_SiteContentPlaceHolder_ucLocation_IdentifyCaptcha1_txtCodeTextBox",
-                captcha_response,
-            )
+        logger.info("Заполняем поле решенной каптчи")
+        self.new_method_setvalue("ctl00_SiteContentPlaceHolder_ucLocation_IdentifyCaptcha1_txtCodeTextBox", captcha_response)
+        self.new_method_click("ctl00_SiteContentPlaceHolder_lnkRetrieve")
+        
+        logger.info("Заполняем поле Barcode")        
+        self.new_method_setvalue("ctl00_SiteContentPlaceHolder_ApplicationRecovery1_tbxApplicationID", barcode)        
+        
+        logger.info("Кликаю на кнопку восстановить")        
+        self.new_method_click("ctl00_SiteContentPlaceHolder_ApplicationRecovery1_btnBarcodeSubmit", 5)
+        
+        logger.info("Заполняю 5 перых букв Имени")        
+        self.new_method_setvalue("ctl00_SiteContentPlaceHolder_ApplicationRecovery1_txbSurname", surname_5_chars)
+        
+        logger.info("Заполняю дату рождения")        
+        self.new_method_setvalue("ctl00_SiteContentPlaceHolder_ApplicationRecovery1_txbDOBYear", birth_year)
+        
+        logger.info("Заполняю ответ на секретный вопрос")        
+        self.new_method_setvalue("ctl00_SiteContentPlaceHolder_ApplicationRecovery1_txbAnswer", secret_q_answer)
+        
+        logger.info("Кликаю подвердить!")        
+        self.new_method_click("ctl00_SiteContentPlaceHolder_ApplicationRecovery1_btnRetrieve",5)
 
-        self.browser.click_clickable_element(
-            "#ctl00_SiteContentPlaceHolder_lnkRetrieve"
-        )
-        logger.info("FILLING BARCODE")
-        time.sleep(2)
-        self.browser.driver.find_element(
-            By.ID,
-            "ctl00_SiteContentPlaceHolder_ApplicationRecovery1_tbxApplicationID",
-        ).send_keys(barcode)
-        self.browser.click_clickable_element(
-            "#ctl00_SiteContentPlaceHolder_ApplicationRecovery1_btnBarcodeSubmit"
-        )
-        time.sleep(2)
-        self.browser.driver.find_element(
-            By.ID,
-            "ctl00_SiteContentPlaceHolder_ApplicationRecovery1_txbSurname",
-        ).send_keys(surname_5_chars)
-        time.sleep(2)
-        self.browser.driver.find_element(
-            By.ID,
-            "ctl00_SiteContentPlaceHolder_ApplicationRecovery1_txbDOBYear",
-        ).send_keys(birth_year)
-        time.sleep(2)
-        self.browser.driver.find_element(
-            By.ID,
-            "ctl00_SiteContentPlaceHolder_ApplicationRecovery1_txbAnswer",
-        ).send_keys(secret_q_answer)
-        time.sleep(2)
-        self.browser.driver.find_element(
-            By.ID,
-            "ctl00_SiteContentPlaceHolder_ApplicationRecovery1_btnRetrieve",
-        ).click()
+
+    def selectDepartment(self, location_value):
+        select = self.browser.find_elementByID("ctl00_SiteContentPlaceHolder_ucLocation_ddlLocation")
+        if select != -1:
+            logger.info("Устанавиливаю центр визы по анкете")
+            self.browser.driver.find_element(
+                By.CSS_SELECTOR, "option[value='%s']" % (location_value,)
+            ).click()        
+        time.sleep(5)
+
 
     def get_started(self, location_value: str):
         self.Location = location_value
@@ -293,15 +286,7 @@ class DsRegistrator:
         self.browser.driver.get(self.HOME_PAGE_URL)
         logger.info(f"текущая страница: {self.browser.driver.current_url}")
         
-        select = self.browser.find_elementByID("ctl00_SiteContentPlaceHolder_ucLocation_ddlLocation")
-        if select != -1:
-            logger.info("Устанавиливаю центр визы по анкете")
-            self.browser.driver.find_element(
-                By.CSS_SELECTOR, "option[value='%s']" % (location_value,)
-            ).click()
-        
-        time.sleep(3)
-
+        self.selectDepartment(location_value)
         self.close_dialog("ctl00_SiteContentPlaceHolder_ucPostMessage_ucPost_ctl01_lnkClose")
 
         captcha = self.browser.find_elementByClass("LBD_CaptchaImage")
@@ -314,8 +299,10 @@ class DsRegistrator:
             while captcha_response == "None":
                 logger.info("решаем новую каптчу")
                 self.browser.driver.refresh()
+                self.selectDepartment(location_value)
                 captcha_photo = self.browser.find_elementByClass("LBD_CaptchaImage").screenshot_as_base64
                 captcha_response = self.solve_captcha(captcha_photo)
+
 
             logger.info("Каптча решена")
             element = self.browser.find_elementByID("ctl00_SiteContentPlaceHolder_ucLocation_IdentifyCaptcha1_txtCodeTextBox")
@@ -349,11 +336,10 @@ class DsRegistrator:
         logger.info(f"текущая страница: {self.browser.driver.current_url}")
 
         logger.info("Забираем Barcode со странцы запуска департамента")
-        check_prvacy = self.browser.find_elementByID("ctl00_SiteContentPlaceHolder_chkbxPrivacyAct")
-        if check_prvacy != -1:
-            logger.info("Чекаю флажок о приватности данных")       
-            self.browser.click_clickable_element("#ctl00_SiteContentPlaceHolder_chkbxPrivacyAct")
-            self.accept_alert()
+        logger.info("Отмечаем радиокнопку")
+        self.new_method_click("ctl00_SiteContentPlaceHolder_chkbxPrivacyAct")
+        self.accept_alert()
+        time.sleep(3)
 
         logger.info("Копирую Barcode")
         barcode = self.browser.find_elementByID("ctl00_SiteContentPlaceHolder_lblBarcode").text
@@ -422,3 +408,32 @@ class DsRegistrator:
                 By.ID, "ctl00_SiteContentPlaceHolder_UpdateButton3"
             ).click()
         return page_url
+
+    def new_method_click_byclass(self, id, time_wait = 0.7):
+        action = ActionChains(self.browser.driver)
+        element = self.browser.find_elementByClass(id)
+        action.click(element).perform()
+        self.accept_alert()
+        time.sleep(time_wait)    
+
+    def new_method_click(self, id, time_wait = 0.7):
+        action = ActionChains(self.browser.driver)
+        element = self.browser.find_elementByID(id)
+        if element != -1:
+            action.click(element).perform()
+            time.sleep(time_wait)
+        else:
+            logger.error(f"Селениум не смог поднять элемент : {id}")
+
+
+    def new_method_setvalue(self, id, value):
+        action = ActionChains(self.browser.driver)
+        element = self.browser.find_elementByID(id)
+        if element != -1:
+            element.clear()
+            action.click(element).perform()
+            time.sleep(0.3)
+            action.send_keys(value).perform()
+            time.sleep(0.7)
+        else:
+            logger.error(f"Селениум не смог поднять элемент : {id}")

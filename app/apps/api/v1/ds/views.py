@@ -1,7 +1,5 @@
 import base64
-import asyncio
 from datetime import datetime
-
 
 from fastapi import Request
 
@@ -9,13 +7,12 @@ from app.apps.schemas import ApiResponseStatus
 from app.config import App
 from app.utils.celery.selenium.tasks import ds_parser_task
 
-from .schemas import DsTaskCreateBody, DsTaskCreatedResponse
+from .schemas import DsTaskCreateBody, DsTaskCreatedResponse, TaskStatusChoices
 
 
 async def ds_task_create(
     request: Request, body: DsTaskCreateBody
 ) -> DsTaskCreatedResponse:
-
     app: App = request.app
     photo_name = (
         f"{body.id}_{str(datetime.now()).replace(' ', '_').replace(':', '_').replace('.', '_')}"
@@ -23,22 +20,23 @@ async def ds_task_create(
     )
     photo_path = str(app.config.misc.USER_PHOTOS_DIR / photo_name)
     ds_body_data = body.model_dump(by_alias=True)
-
     with open(photo_path, "wb") as file:
         file.write(base64.b64decode(body.photo))
     
-    task = asyncio.run(ds_parser_task(
+    task = ds_parser_task.delay(
         app.config.app.DS_RESULT_CALLBACK_URL,
         body.steps.step_1.DsRecordId,
         app.config.RUCAPTCHA_API_KEY,
         photo_path,
         ds_body_data["steps"],
-    ))
+    )
 
     return DsTaskCreatedResponse(
-        status=ApiResponseStatus(code=201, message="Задача создана успешно"),
-        task_id=task.task_id,
-        DsRecordId=body.id,
+        status = ApiResponseStatus(code=201, message="Задача создана успешно"),
+	    task_status = TaskStatusChoices.STARTED,
+	    errors = ['Задача создана успешно'],
+        task_id = task.task_id,
+        DsRecordId = body.id,
     )
 
 
