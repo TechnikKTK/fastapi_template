@@ -4,6 +4,7 @@ import os
 import random
 import shutil
 import time
+import uuid
 
 
 from selenium.webdriver.common.keys import Keys
@@ -27,6 +28,15 @@ from app.services.interview_registrator.core import InterviewRegistrator
 logger = logging.getLogger(__name__)
 
 
+def SendResponseError(code, response_data, text):
+    response_data["status"] = ApiResponseStatus(
+        code=code, message=text
+    )
+    return InterviewResponseSchema(**response_data).model_dump(
+        by_alias=True
+    )  
+
+
 def interview_registrator_run(
     interview_id: str,
     rucaptcha_api_key: str,
@@ -43,12 +53,15 @@ def interview_registrator_run(
         by_alias=True
     )
     parser_person_data.pop("Id")
+    
+    logger.info("Загружаю данные с входного json")
     response_data = {
         "interviewId": interview_id,
         "barcode": parser_person_data["link3b"],
         "photo_format": "png",
     }
-    logger.info("PARSED DATA VALIDATED")
+
+    logger.info("Создаю класс регистратора записи")
     registrator = InterviewRegistrator(
         Browser(
             Chrome,
@@ -60,12 +73,20 @@ def interview_registrator_run(
         ),
         rucaptcha_api_key,
     )
+    logger.info("Класс регистратора на собеседование создан")
+
     try:
+        logger.info("Создание элемента действия для клика по сайту")
         action = ActionChains(registrator.browser.driver)
-        logger.info("Класс регистратора на собеседование создан")
+        
+        logger.info("Открытие стартовой страницы регистрации")
         registrator.browser.driver.get(registrator.HOME_PAGE_URL)
-        logger.info("Выбираю страну и город")
-        time.sleep(5)
+        
+        logger.info("Выбираю страну и город")        
+        element = registrator.browser.find_elementByXPath("//select[@name='CountryCodeShow']")
+        if element == -1:
+            return SendResponseError(510,response_data, "Не найдел элемент со списком стран")
+
         registrator.choose_country_and_city(
             f"select[name='CountryCodeShow']",
             country_code,
@@ -73,244 +94,140 @@ def interview_registrator_run(
             city_code,
         )
         
-        element = registrator.browser.find_elementByClass("buttontext")
+        logger.info("Нажимаю кнопку отправить")        
+        element = registrator.browser.find_elementByXPath("//input[@type='submit'][@class='buttontext']")
         if element != -1:
             action.click(element).perform()
+        else:
+            return SendResponseError(510,response_data, "Не удалось перейти на нужную страницу")
 
-        time.sleep(3)
-        maybe_captcha_solved = registrator.maybe_captcha_page_solve()
-        if not maybe_captcha_solved:
-            response_data["status"] = ApiResponseStatus(
-                code=500, message="Промежуточная капча не решена"
-            )
-            return InterviewResponseSchema(**response_data).model_dump(
-                by_alias=True
-            )
-        time.sleep(5)
-        logger.info("CAPTCHA SECOND SOLVING")
-        registrator.second_page_captcha_solve()
-        time.sleep(1)
-        registrator.browser.driver.find_element(By.ID, "link21").click()
-        time.sleep(5)
-        solved = registrator.check_second_captcha_solved()
+        success_solve = registrator.check_captcha_page_exists()
+        if not success_solve:
+            return SendResponseError(510,response_data, "Промежуточная капча не решена")
+
+        logger.info("Следующий этап: проверка каптчи и переход к расписанию")        
+        success_solve = registrator.try_captcha_solve("//div[@id='frmconinput_CaptchaImageDiv']", "//input[@id='CaptchaCode']")
+        if not success_solve:
+            return SendResponseError(510,response_data, "Капчта не решена успешно после выбора страны")
+        
+        logger.info("Переход к расписанию")        
+        element = registrator.browser.find_elementByXPath("//input[@type='submit'][@id='link21']")
+        if element != -1:
+            action.click(element).perform()
+        else:
+            return SendResponseError(510,response_data, "Не удалось найти элемент submit")
+
+        success_solve = registrator.check_captcha_page_exists()
+        if not success_solve:
+            return SendResponseError(510,response_data, "Промежуточная капча не решена")
+        
+        logger.info("Заполняем barcode клиента")
+        barcode = parser_person_data.pop("link3b") 
+
+        element = registrator.browser.find_elementByXPath("//input[@id='link3b']")
+        if element != -1:
+            element.send_keys(barcode)
+
+        element = registrator.browser.find_elementByXPath("//input[@type='submit'][@id='link4']")
+        if element != -1:
+            action.click(element).perform()
+        
+        success_solve = registrator.check_captcha_page_exists()
+        if not success_solve:
+            return SendResponseError(510,response_data, "Промежуточная капча не решена")
+        
+        chosen_status = False
         attempts = 5
-        while not solved and attempts:
-            logger.info("SECOND CAPTCHA SOLVED WRONG! TRYING AGAIN")
-            registrator.browser.driver.find_element(
-                By.CLASS_NAME, "buttontext"
-            ).click()
-            time.sleep(2)
-            registrator.browser.driver.refresh()
-            time.sleep(3)
-            registrator.second_page_captcha_solve()
-            time.sleep(1)
-            registrator.browser.driver.find_element(By.ID, "link21").click()
-            time.sleep(3)
-            solved = registrator.check_second_captcha_solved()
-            attempts -= 1
-        if not attempts:
-            logger.info("SECOND CAPTCHA SOLVED WRONG ALL TIMES")
-            response_data["status"] = ApiResponseStatus(
-                code=500, message="Капча не решена"
-            )
-            return InterviewResponseSchema(**response_data).model_dump(
-                by_alias=True
-            )
-        maybe_captcha_solved = registrator.maybe_captcha_page_solve()
-        if not maybe_captcha_solved:
-            response_data["status"] = ApiResponseStatus(
-                code=500, message="Промежуточная капча не решена"
-            )
-            return InterviewResponseSchema(**response_data).model_dump(
-                by_alias=True
-            )
-        time.sleep(5)
-        barcode = parser_person_data.pop("link3b")
-        logger.info("BARCODE FILLING")
-        registrator.browser.driver.find_element(By.ID, "link3b").send_keys(
-            barcode
-        )
-        time.sleep(1)
-        registrator.browser.driver.find_element(By.ID, "link4").click()
-        time.sleep(5)
-        maybe_captcha_solved = registrator.maybe_captcha_page_solve()
-        if not maybe_captcha_solved:
-            response_data["status"] = ApiResponseStatus(
-                code=500, message="Промежуточная капча не решена"
-            )
-            return InterviewResponseSchema(**response_data).model_dump(
-                by_alias=True
-            )
-        chosen_interview_date: datetime.datetime = random.choice(
-            available_dates
-        )
-        year, month, calendar_page_date = str(chosen_interview_date).split("-")
-        calendar_page_date = "1"
-        month = str(int(month))
-        page_value_date = f"{month}/{calendar_page_date}/{year}"
-        logger.info("CHOOSING CALENDAR DATE")
-        registrator.set_calendar_date(page_value_date)
-        time.sleep(3)
-        maybe_captcha_solved = registrator.maybe_captcha_page_solve()
-        if not maybe_captcha_solved:
-            response_data["status"] = ApiResponseStatus(
-                code=500, message="Промежуточная капча не решена"
-            )
-            return InterviewResponseSchema(**response_data).model_dump(
-                by_alias=True
-            )
-        logger.info(
-            f"CHOOSING INTERVIEW DATE! CHOSEN DATE {chosen_interview_date}"
-        )
-        chosen_status = registrator.choose_calendar_day(chosen_interview_date)
-        attempts = 3
         while attempts and not chosen_status:
-            logger.info("INTERVIEW DATE NOT FOUND, RETRYING ANOTHER DATE")
-            available_dates.remove(chosen_interview_date)
-            chosen_interview_date: datetime.datetime = random.choice(
-                available_dates
-            )
-            year, month, calendar_page_date = str(chosen_interview_date).split(
-                "-"
-            )
+            chosen_interview_date: datetime.datetime = random.choice(available_dates)
+            year, month, calendar_page_date = str(chosen_interview_date).split("-")
             calendar_page_date = "1"
             month = str(int(month))
             page_value_date = f"{month}/{calendar_page_date}/{year}"
-            logger.info("CHOOSING CALENDAR DATE")
+            
+            logger.info("Выбор даты приема из указанных в заявке")
             registrator.set_calendar_date(page_value_date)
-            time.sleep(3)
-            maybe_captcha_solved = registrator.maybe_captcha_page_solve()
-            if not maybe_captcha_solved:
-                response_data["status"] = ApiResponseStatus(
-                    code=500, message="Промежуточная капча не решена"
-                )
-                return InterviewResponseSchema(**response_data).model_dump(
-                    by_alias=True
-                )
-            logger.info(
-                f"CHOOSING INTERVIEW DATE! CHOSEN DATE {chosen_interview_date}"
-            )
-            chosen_status = registrator.choose_calendar_day(
-                chosen_interview_date
-            )
+
+            logger.info(f"Ищу окна на указанную дату: {chosen_interview_date}")
+            chosen_status = registrator.choose_calendar_day(chosen_interview_date)
+            available_dates.remove(chosen_interview_date)
             attempts -= 1
-            time.sleep(1)
+
         if not attempts:
-            logger.info("INTERVIEW DATE NOT FOUND, NO ATTEMPTS")
-            response_data["status"] = ApiResponseStatus(
-                code=400, message="Дата для регистрации занята"
-            )
-            return InterviewResponseSchema(**response_data).model_dump(
-                by_alias=True
-            )
-        time.sleep(5)
-        logger.info("INTERVIEW REGISTER PAGE")
-        chosen_interview_datetime = registrator.choose_interview_time()
-        chosen_interview_datetime = datetime.datetime.strptime(
-            chosen_interview_datetime, "%m/%d/%Y %I:%M:%S %p"
-        )
-        response_data["datetime"] = chosen_interview_datetime
-        time.sleep(1)
-        registrator.fill_input_data(parser_person_data)
-        logger.info("ALL DATA FILLED")
-        logger.info("LAST CAPTCHA SOLVING")
-        page_solve_captcha = registrator.last_page_solve_captcha()
-        if not page_solve_captcha:
-            response_data["status"] = ApiResponseStatus(
-                code=500, message="Итоговая капча не решена"
-            )
-            return InterviewResponseSchema(**response_data).model_dump(
-                by_alias=True
-            )
-        registrator.browser.driver.find_element(By.ID, "linkSubmit").click()
-        maybe_captcha_solved = registrator.maybe_captcha_page_solve()
-        if not maybe_captcha_solved:
-            response_data["status"] = ApiResponseStatus(
-                code=500, message="Промежуточная капча не решена"
-            )
-            return InterviewResponseSchema(**response_data).model_dump(
-                by_alias=True
-            )
-        logger.info("CHECKING PAGE ERRORS")
-        page_errors = registrator.last_page_has_errors()
-        attempts = 3
-        time.sleep(2)
+            logger.info("Свободные окна для указанного периода дат не найдены")
+            return SendResponseError(400,response_data, "Дата для регистрации занята")
+
+        success_solve = registrator.check_captcha_page_exists()
+        if not success_solve:
+            return SendResponseError(510,response_data, "Промежуточная капча не решена")
+
+        logger.info("Следующий этап: запись на указанную дату (время)")
+        
+        attempts = 4
+        page_errors = True
         while page_errors and attempts:
-            registrator.browser.driver.find_element(
-                By.CSS_SELECTOR, ".buttontext"
-            ).click()
-            time.sleep(3)
-            registrator.browser.driver.find_element(
-                By.CSS_SELECTOR, "#linkReset"
-            ).click()
+        
             chosen_interview_datetime = registrator.choose_interview_time()
             chosen_interview_datetime = datetime.datetime.strptime(
                 chosen_interview_datetime, "%m/%d/%Y %I:%M:%S %p"
             )
             response_data["datetime"] = chosen_interview_datetime
-            time.sleep(1)
+
+            logger.info("Заполняю остальные данные и решаю каптчу")
             registrator.fill_input_data(parser_person_data)
-            logger.info("ALL DATA FILLED")
-            logger.info("LAST CAPTCHA SOLVING")
-            page_solve_captcha = registrator.last_page_solve_captcha()
-            if not page_solve_captcha:
-                response_data["status"] = ApiResponseStatus(
-                    code=500, message="Итоговая капча не решена"
-                )
-                return InterviewResponseSchema(**response_data).model_dump(
-                    by_alias=True
-                )
-            registrator.browser.driver.find_element(
-                By.ID, "linkSubmit"
-            ).click()
-            maybe_captcha_solved = registrator.maybe_captcha_page_solve()
-            if not maybe_captcha_solved:
-                response_data["status"] = ApiResponseStatus(
-                    code=400, message="Промежуточная капча не решена"
-                )
-                return InterviewResponseSchema(**response_data).model_dump(
-                    by_alias=True
-                )
-            attempts -= 1
+
+            success_solve = registrator.try_captcha_solve("//div[@id='frmconinput_CaptchaImageDiv']", "//input[@id='CaptchaCode']")
+            if not success_solve:
+                return SendResponseError(510,response_data, "Капчта не решена успешно после заполнения данных")
+            
+            element = registrator.browser.find_elementByXPath("//input[@id='linkSubmit']")
+            if element != -1:
+                action.click(element).perform()
+
+            success_solve = registrator.check_captcha_page_exists()
+            if not success_solve:
+                return SendResponseError(510,response_data, "Промежуточная капча не решена")
+
+            if registrator.check_bad_submit():
+                element = registrator.browser.find_elementByXPath("//input[@type='reset']")
+                if element != -1:
+                    action.click(element).perform()
+                attempts -= 1
+            else: page_errors = False
+
         if not attempts:
-            logger.info("NO ATTEMPTS LAST PAGE")
+            logger.info("Закончились попытки ввода данных")
+            return SendResponseError(400,response_data, "Попробуйте ещё раз! Убедитесь, что все введенные данные правильные")
+       
+        logger.info("Данные заполнены успешно")
+        element = registrator.browser.find_elementByXPath("//td[.//span[contains(text(),'PLEASE PRINT THIS PAGE FOR YOUR RECORD')]]")
+        if element != -1:
+            success_screen = element[-1].screenshot_as_png
+            logger.info("Забираю скриншот экрана")
+
+            with open(f"{response_data["barcode"]}.png", "wb") as file:
+                file.write(success_screen)
+
+            response_data["photo"] = str(success_screen)
             response_data["status"] = ApiResponseStatus(
-                code=400,
-                message="Попробуйте ещё раз! Убедитесь, что все введенные данные правильные",
+                code=200, message="Запись на собеседование прошла спешно"
             )
+
+            logger.info("Отправляю данные обратно визе")
             return InterviewResponseSchema(**response_data).model_dump(
                 by_alias=True
             )
-        logger.info("SUCCESS SAVING SCREENSHOT")
-        success_screen = registrator.browser.driver.find_element(
-            By.CSS_SELECTOR,
-            "body > table:nth-child(28) > tbody > tr > td > table > tbody",
-        ).screenshot_as_png
-        with open("data.png", "wb") as file:
-            file.write(success_screen)
-        response_data["photo"] = str(success_screen)
-        response_data["status"] = ApiResponseStatus(
-            code=200, message="Успешно записал на собеседование"
-        )
-        logger.info("SUCCESS FINISH")
-        return InterviewResponseSchema(**response_data).model_dump(
-            by_alias=True
-        )
+        
     except Exception as error:
-        logger.info(f"UNEXPECTED ERROR: {error}")
-        response_data["status"] = ApiResponseStatus(
-            code=500,
-            message="Что-то пошло не так... Попробуйте ещё раз. Убедитесь, "
-            "что все введённые данные правильные",
-        )
-        return InterviewResponseSchema(**response_data).model_dump(
-            by_alias=True
-        )
+        logger.info(f"Ошибка во время обработки сервиса: {error}")
+        return SendResponseError(500, response_data, error)
+
     finally:
         try:            
-            logger.info("CLOSING BROWSER")
-            registrator.browser.driver.close()
+            logger.info("Закрываю браузер")
+            registrator.browser.driver.close()  
             registrator.browser.driver.quit()
+            registrator.browser.delete()
         except (WebDriverException, UnexpectedAlertPresentException) as ex:
             logger.warning(f"Ошибка при закрытии браузера: {ex}")
         except Exception as ex:

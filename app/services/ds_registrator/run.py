@@ -310,3 +310,4 @@ def run_ds_registrator(
 
             logger.info("Возвращаю состояние таски в visa")
             return ds_task_data
+        

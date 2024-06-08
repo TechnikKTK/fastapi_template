@@ -1,6 +1,8 @@
 import random
 from dataclasses import asdict
 from typing import Type, Union
+import signal
+import os
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver import Firefox, FirefoxOptions
@@ -19,7 +21,9 @@ class Browser:
     ):
         self.options = self._init_browser_options(driver_type, options)
         self.driver = driver_type(options=self.options)
-        self.wait = WebDriverWait(self.driver, timeout=3, poll_frequency=0.5, ignored_exceptions=[TimeoutException])
+        self.wait = WebDriverWait(self.driver, timeout=10, poll_frequency=0.5, ignored_exceptions=[TimeoutException])
+        self.pid = self.driver.service.process.pid
+
 
     def _init_browser_options(
         self, driver_type: Type[Union[Firefox, Chrome]], options: DriverOptions
@@ -101,9 +105,17 @@ class Browser:
     def delete(self):
         if hasattr(self,"service") and getattr(self.service,"pocess", None):            
             try:
+                self.driver.quit()
                 self.service.process.kill()
             except:  # noqa
                 pass
+            
+        try:
+            os.kill(int(self.pid), signal.SIGTERM)
+            print("Killed chrome using process")
+        except ProcessLookupError as ex:
+            pass
+
 
     def find_elementByID(self,elementId):
         try:
@@ -112,6 +124,15 @@ class Browser:
         except TimeoutException:
             return -1
         
+
+    def find_elementByXPath(self,xPath):
+        try:
+            element = self.wait.until(lambda x: x.find_element(By.XPATH, xPath)) 
+            return element
+        except TimeoutException:
+            return -1   
+        
+
     def find_elementByClass(self,elementClass):
         try:
             element = self.wait.until(lambda x: x.find_element(By.CLASS_NAME, elementClass)) 
