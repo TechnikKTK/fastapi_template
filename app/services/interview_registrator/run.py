@@ -205,7 +205,8 @@ def interview_registrator_run(
             success_screen = element[-1].screenshot_as_png
             logger.info("Забираю скриншот экрана")
 
-            with open(f"{response_data["barcode"]}.png", "wb") as file:
+            barcode = response_data["barcode"]
+            with open(f"{barcode}.png", "wb") as file:
                 file.write(success_screen)
 
             response_data["photo"] = str(success_screen)
