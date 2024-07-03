@@ -314,12 +314,14 @@ class DsRegistrator:
                 )
         
         time.sleep(3)
-
-        button_next = self.browser.find_elementByID("ctl00_SiteContentPlaceHolder_lnkNew")
-        if button_next != -1:
+        
+        element = self.browser.find_elementByXPath("//a[@id='ctl00_SiteContentPlaceHolder_lnkNew']")
+        if element != -1:
             logger.info("Кликаю на START AN APPLICATION")
-            self.browser.driver.execute_script("arguments[0].click();", button_next)
-            self.accept_alert()
+            element.click()
+        
+        time.sleep(3)  
+        self.accept_alert()
 
 
     def check_timeout(self):
@@ -329,28 +331,37 @@ class DsRegistrator:
             return True
         return False
 
+
     def first_get_barcode(self, second_step_data: dict) -> str:
         if self.check_timeout():
             return "-1"
         
         logger.info(f"текущая страница: {self.browser.driver.current_url}")
+        time.sleep(5)
 
-        logger.info("Забираем Barcode со странцы запуска департамента")
-        logger.info("Отмечаем радиокнопку")
-        self.new_method_click("ctl00_SiteContentPlaceHolder_chkbxPrivacyAct")
+        element = self.browser.find_elementByXPath("//input[@id='ctl00_SiteContentPlaceHolder_chkbxPrivacyAct']")
+        if element != -1:
+            logger.info("Отмечаем радиокнопку")
+            element.click()
         self.accept_alert()
-        time.sleep(3)
 
-        logger.info("Копирую Barcode")
-        barcode = self.browser.find_elementByID("ctl00_SiteContentPlaceHolder_lblBarcode").text
-        
+        element = self.browser.find_elementByXPath("//span[@id='ctl00_SiteContentPlaceHolder_lblBarcode']")
+        if element != -1:
+            logger.info("Забираем Barcode со странцы запуска департамента")
+            barcode = element.text
+
         for key, value in second_step_data.items():
+            logger.info(f"Заполняю секретный вопрос и ответ")
             self.browser.set_input_value(f"#{key}", value)
             time.sleep(1)
 
-        self.browser.find_elementByID("ctl00_SiteContentPlaceHolder_btnContinue").click()
-        self.accept_alert()
 
+        element = self.browser.find_elementByXPath("//input[@id='ctl00_SiteContentPlaceHolder_btnContinue']")
+        if element != -1:
+            logger.info("Переходим к следующему этапу")
+            element.click()
+
+        self.accept_alert()
         return barcode
 
     def sendEnter(self, id):
@@ -420,6 +431,7 @@ class DsRegistrator:
         action = ActionChains(self.browser.driver)
         element = self.browser.find_elementByID(id)
         if element != -1:
+            logger.info(f"Нажимаю на кнопку : {id}")
             action.click(element).perform()
             time.sleep(time_wait)
         else:

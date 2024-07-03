@@ -87,7 +87,7 @@ def interview_task(
     free_dates: list[datetime.datetime],
     result_callback_url: str,
 ):
-    logger.info("INTERVIEW TASK IS STARTING")
+    logger.info("Начинаю задачу записи")
     data = interview_registrator_run(
         unique_id,
         rucaptcha_api_key,
@@ -96,5 +96,6 @@ def interview_task(
         person_data,
         free_dates,
     )
-    logger.info("BACKEND API POST REQUEST(SUCCESS/FAIL TASK)")
+    logger.info("Отправляю ответ на сайт визы")
+    logger.info(data)
     requests.post(result_callback_url, json=data)

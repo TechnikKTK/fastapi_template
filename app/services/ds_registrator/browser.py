@@ -1,9 +1,10 @@
-import random
 from dataclasses import asdict
 from typing import Type, Union
-import signal
+import logging
 import os
+import signal
 
+import psutil
 from selenium.webdriver.common.by import By
 from selenium.webdriver import Firefox, FirefoxOptions
 from selenium.webdriver.support.ui import WebDriverWait
@@ -14,15 +15,17 @@ from selenium.webdriver.support.ui import Select
 
 from .types.browser import DriverOptions
 
+logger = logging.getLogger(__name__)
 
 class Browser:
     def __init__(
         self, driver_type: Type[Union[Firefox, Chrome]], options: DriverOptions
     ):
         self.options = self._init_browser_options(driver_type, options)
-        self.driver = driver_type(options=self.options)
+        self.driver = driver_type(browser_executable_path="/home/ds_owner/chrome/chrome",
+			driver_executable_path="/home/ds_owner/chromedriver/chromedriver", options=self.options)
         self.wait = WebDriverWait(self.driver, timeout=10, poll_frequency=0.5, ignored_exceptions=[TimeoutException])
-        self.pid = self.driver.service.process.pid
+        
 
 
     def _init_browser_options(
@@ -102,18 +105,27 @@ class Browser:
             % (selector,)
         )
 
+
     def delete(self):
-        if hasattr(self,"service") and getattr(self.service,"pocess", None):            
+        self.pid = self.driver.service.process.pid
+        p = psutil.Process(self.driver.service.process.pid)
+        children = p.children(recursive=True)
+
+        # kill the chrome PIDs
+        for child in children:
             try:
-                self.driver.quit()
-                self.service.process.kill()
-            except:  # noqa
+                # kill child pid
+                os.kill(child.pid, signal.SIGKILL)
+                os.waitpid(child.pid, 3)
+            except:
                 pass
-            
+
         try:
-            os.kill(int(self.pid), signal.SIGTERM)
-            print("Killed chrome using process")
+            logger.info(f"Закрываю процесс драйвера по PID = {self.pid}")
+            os.kill(p.pid, signal.SIGKILL)
+            os.waitpid(p.pid, 15)
         except ProcessLookupError as ex:
+            logger.error("Fail Killed chrome using process")
             pass
 
 
@@ -131,8 +143,20 @@ class Browser:
             return element
         except TimeoutException:
             return -1   
+    
+    def find_elementsByXPath(self,xPath):
+        try:
+            element = self.wait.until(lambda x: x.find_elements(By.XPATH, xPath)) 
+            return element
+        except TimeoutException:
+            return -1 
         
-
+    def find_elementsByCss(self,xPath):
+        try:
+            element = self.wait.until(lambda x: x.find_elements(By.CSS_SELECTOR, xPath)) 
+            return element
+        except TimeoutException:
+            return -1 
     def find_elementByClass(self,elementClass):
         try:
             element = self.wait.until(lambda x: x.find_element(By.CLASS_NAME, elementClass)) 

@@ -283,12 +283,14 @@ def run_ds_registrator(
 
             ds_registrator.accept_alert()
             ds_registrator.browser.driver.close()  
+            ds_registrator.accept_alert()
         except:
             pass
 
         try:            
             ds_registrator.accept_alert()
             ds_registrator.browser.driver.quit()
+            ds_registrator.accept_alert()
         except:
             pass  
 

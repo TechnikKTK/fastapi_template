@@ -29,6 +29,8 @@ logger = logging.getLogger(__name__)
 
 
 def SendResponseError(code, response_data, text):
+    logger.info(f"Сообщение об ошибке: {text}")
+
     response_data["status"] = ApiResponseStatus(
         code=code, message=text
     )
@@ -165,23 +167,26 @@ def interview_registrator_run(
         
         attempts = 4
         page_errors = True
-        while page_errors and attempts:
-        
-            chosen_interview_datetime = registrator.choose_interview_time()
+        while page_errors and attempts:        
+            time_string = registrator.choose_interview_time()
             chosen_interview_datetime = datetime.datetime.strptime(
-                chosen_interview_datetime, "%m/%d/%Y %I:%M:%S %p"
+                time_string, "%m/%d/%Y %I:%M:%S %p"
             )
-            response_data["datetime"] = chosen_interview_datetime
+            response_data["register_datetime"] = time_string
 
             logger.info("Заполняю остальные данные и решаю каптчу")
             registrator.fill_input_data(parser_person_data)
-
+            logger.info("Данные заполнены")
+            
+            logger.info("Решаю финальную каптчу")
             success_solve = registrator.try_captcha_solve("//div[@id='frmconinput_CaptchaImageDiv']", "//input[@id='CaptchaCode']")
             if not success_solve:
                 return SendResponseError(510,response_data, "Капчта не решена успешно после заполнения данных")
             
+            logger.info("Ищу кнопку завершить")
             element = registrator.browser.find_elementByXPath("//input[@id='linkSubmit']")
             if element != -1:
+                logger.info("Кликаю на кнопку завершить")
                 action.click(element).perform()
 
             success_solve = registrator.check_captcha_page_exists()
@@ -192,33 +197,39 @@ def interview_registrator_run(
                 element = registrator.browser.find_elementByXPath("//input[@type='reset']")
                 if element != -1:
                     action.click(element).perform()
-                attempts -= 1
-            else: page_errors = False
+            else: 
+                logger.info('Проблем не обнаружено')
+                page_errors = False
+            attempts -= 1
 
         if not attempts:
             logger.info("Закончились попытки ввода данных")
             return SendResponseError(400,response_data, "Попробуйте ещё раз! Убедитесь, что все введенные данные правильные")
        
-        logger.info("Данные заполнены успешно")
-        element = registrator.browser.find_elementByXPath("//td[.//span[contains(text(),'PLEASE PRINT THIS PAGE FOR YOUR RECORD')]]")
+        logger.info(f"Текуща страница: {registrator.browser.driver.current_url}")
+        if "make_submit_cancel.asp" in registrator.browser.driver.current_url:
+            element = registrator.browser.find_elementByXPath("//table[@border='1']")
+        elif "make_submit.asp" in registrator.browser.driver.current_url:
+            element = registrator.browser.find_elementByXPath("//table[@align='left']//td//table")
+        
         if element != -1:
-            success_screen = element[-1].screenshot_as_png
+            success_screen = element.screenshot_as_png
             logger.info("Забираю скриншот экрана")
 
             barcode = response_data["barcode"]
             with open(f"{barcode}.png", "wb") as file:
                 file.write(success_screen)
 
-            response_data["photo"] = str(success_screen)
+            response_data["photo"] = element.screenshot_as_base64
             response_data["status"] = ApiResponseStatus(
-                code=200, message="Запись на собеседование прошла спешно"
+                code=200, message="Запись на собеседование прошла успешно"
             )
 
-            logger.info("Отправляю данные обратно визе")
+            logger.info("Response данные для визы")
             return InterviewResponseSchema(**response_data).model_dump(
                 by_alias=True
             )
-        
+            
     except Exception as error:
         logger.info(f"Ошибка во время обработки сервиса: {error}")
         return SendResponseError(500, response_data, error)

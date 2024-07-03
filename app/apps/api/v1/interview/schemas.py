@@ -34,7 +34,7 @@ class InterviewRegisterTaskCreate(BaseModel):
 class InterviewResponseSchema(BaseModel):
     interviewId: str
     barcode: str
-    register_datetime: datetime | None = None
+    register_datetime: str | None = None
     status: ApiResponseStatus
     photo: str | None = None
     photo_format: str

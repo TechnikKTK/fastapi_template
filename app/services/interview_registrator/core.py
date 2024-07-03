@@ -68,7 +68,7 @@ class InterviewRegistrator:
 
     #Решение каптчи
     def ru_captcha_solve(self, photo_selector: str) -> bool | str:
-        captcha_div = self.browser.find_elementByXPath(photo_selector).screenshot_as_base64
+        captcha_div = self.browser.find_elementByXPath(photo_selector)
         if captcha_div != -1:
             captcha_photo = captcha_div.screenshot_as_base64            
             captcha_solver = RuCaptcha(self.__RUCAPTCHA_API_KEY)
@@ -112,13 +112,13 @@ class InterviewRegistrator:
 
     #Проверка на то что появилась каптча (от сайта)
     def check_captcha_page_exists(self) -> bool: 
-        logger.info("Проверка на всплувающую каптчу")
+        logger.info("Проверка на всплывающую каптчу")
         element = self.browser.find_elementByXPath("//b[contains(text(),'What code is in the image?')]")
         if element != -1:
             return self.advanced_captcha_solve()
         else:
             logger.info("Повезло, капчти нет")
-            return False
+            return True
 
     #Решение дополнительной каптчи
     def advanced_captcha_solve(self):
@@ -142,6 +142,7 @@ class InterviewRegistrator:
 
     #Проверка того что страница плохого зопроса
     def check_bad_submit(self)-> bool:
+        logger.info('Проверяю на наличие страницы неверного ввода')
         if "BadSubmit.asp" in self.browser.driver.current_url:
             element = self.browser.find_elementByXPath("//input[@value='Back'][@class='buttontext']")
             if element != -1:
@@ -173,29 +174,35 @@ class InterviewRegistrator:
 
     #Установка месяца и года
     def set_calendar_date(self, date_str: str):
-        calendar = Select(
-            self.browser.find_elementByXPath("//select[@class='formfield']")
-        )
-        calendar.select_by_value(date_str)
+        element = self.browser.find_elementByCss('select.formfield')
+        logger.info(f"текущая страница {self.browser.driver.current_url}")
+        if element != -1:
+            calendar = Select(element)        
+            logger.info(f"Выбираю месяц и год: {date_str}")
+            calendar.select_by_value(date_str)
 
     #Ищу окно записи
     def choose_calendar_day(self, date: datetime.date):
-        available_days = self.browser.find_elementByXPath("//td[@bgcolor='#9CCFFF'][@class='formfield']//a")
+        available_days = self.browser.find_elementsByCss("td.formfield a")
         for idx, day in enumerate(available_days):
-            day = int(day.text)
-            if date.day == day:
-                logger.info("Найдено окно для записи")
-                available_days[idx].click()
-                return True
+            if "Available" not in day.text:
+                day = int(day.text)
+                if date.day == day:
+                    logger.info("Найдено окно для записи")
+                    available_days[idx].click()
+                    return True
         return False
 
     #Выбираю время записи
     def choose_interview_time(self) -> str:
         logger.info("Выбираю время для записи")
-        time_inputs = self.browser.find_elementByXPath("//input[@name='availTimeSlot'][@type='radio']")
+        time_inputs = self.browser.find_elementsByXPath("//input[@name='availTimeSlot'][@type='radio']")
         random_time: WebElement = random.choice(time_inputs)
+        time = random_time.get_attribute("value")
+        
+        logger.info(f"Выбирал время для записи:{time}")
         random_time.click()
-        return random_time.get_attribute("value")
+        return time
 
     #Заполнение данных записи
     def fill_input_data(self, fill_data: dict):
@@ -208,29 +215,3 @@ class InterviewRegistrator:
                     element.click()
             else:
                 element.send_keys(value)
-
-
-    # def last_page_ru_captcha_solve(self):
-    #     captcha_value = self.ru_captcha_solve("#frmconinput_CaptchaImageDiv")
-    #     attempts = 5
-    #     while not captcha_value and attempts:
-    #         captcha_value = self.ru_captcha_solve("#frmconinput_CaptchaImageDiv")
-    #         attempts -= 1
-    #     if not attempts:
-    #         logger.info("LAST Не удалось решить каптчу")
-    #         return False
-    #     logger.info("LAST CAPTCHA SOLVED")
-    #     self.browser.driver.find_element(By.ID, "CaptchaCode").send_keys(
-    #         captcha_value
-    #     )
-    #     return True
-
-    # def last_page_has_errors(self) -> bool:
-    #     try:
-    #         return bool(
-    #             self.browser.driver.find_element(
-    #                 By.CSS_SELECTOR, "body > table > tbody > tr > td > font"
-    #             )
-    #         )
-    #     except NoSuchElementException:
-    #         return False
