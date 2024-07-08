@@ -107,25 +107,24 @@ class Browser:
 
 
     def delete(self):
-        self.pid = self.driver.service.process.pid
         p = psutil.Process(self.driver.service.process.pid)
         children = p.children(recursive=True)
 
         # kill the chrome PIDs
         for child in children:
             try:
-                # kill child pid
-                os.kill(child.pid, signal.SIGKILL)
-                os.waitpid(child.pid, 3)
+                logger.info(f"Закрываю дочерний процесс драйвера по PID = {child.pid}")
+                os.kill(child.pid, 9)
+                os.waitpid(child.pid, 0)
             except:
                 pass
 
         try:
-            logger.info(f"Закрываю процесс драйвера по PID = {self.pid}")
-            os.kill(p.pid, signal.SIGKILL)
-            os.waitpid(p.pid, 15)
+            logger.info(f"Закрываю процесс драйвера по PID = {p.pid}")
+            os.kill(p.pid, 9)
+            os.waitpid(p.pid, 0)
         except ProcessLookupError as ex:
-            logger.error("Fail Killed chrome using process")
+            logger.error("Не смог закрыть хром")
             pass
 
 

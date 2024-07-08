@@ -184,14 +184,21 @@ class InterviewRegistrator:
     #Ищу окно записи
     def choose_calendar_day(self, date: datetime.date):
         available_days = self.browser.find_elementsByCss("td.formfield a")
+        days = []
+        success = False
         for idx, day in enumerate(available_days):
             if "Available" not in day.text:
                 day = int(day.text)
                 if date.day == day:
                     logger.info("Найдено окно для записи")
-                    available_days[idx].click()
-                    return True
-        return False
+                    days.append(available_days[idx])                  
+                    success = True
+
+        if len(days) > 0:
+            select_day = random.choice(days)
+            select_day.click()
+
+        return success
 
     #Выбираю время записи
     def choose_interview_time(self) -> str:
